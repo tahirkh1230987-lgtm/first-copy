@@ -1,89 +1,117 @@
-import React, { useState } from 'react';
 
-const Dashboard = () => {
+import { useEffect, useState } from "react";
+import axios from "axios";
 
-    const [users, setUsers] = useState([
-        { id: 1, name: "Ali", email: "ali@gmail.com" },
-        { id: 2, name: "Ragnar", email: "ragnar@gmail.com" },
-    ]);
+function Dashboard() {
 
-    const [name, setName] = useState('');
-    const [email, setEmail] = useState('');
-    const [editId, setEditId] = useState(null);
+    const [showForm, setShowForm] = useState(false);
+    const [name, setName] = useState("");
+    const [email, setEmail] = useState("");
+    const [users, setUsers] = useState([]);
+    const [update, setUpdate] = useState("");
 
-    function handleSubmit() {
-        if (name === '' || email === '') {
-            alert('Name aur email dono likhein');
+    const getUsers = async () => {
+        const { data } = await axios.get("http://localhost:5000/users");
+        setUsers(data);
+    };
+
+    const handleSubmit = async () => {
+
+        if (name === "" || email === "") {
+            alert("Please enter name and email");
             return;
         }
 
-        if (editId) {
-            setUsers(
-                users.map((u) =>
-                    u.id === editId
-                        ? { id: editId, name, email }
-                        : u
-                )
-            );
-
-            setEditId(null);
+        if (update) {
+            await axios.post("http://localhost:5000/updateUser", {
+                name,
+                email,
+                _id: update._id
+            });
         } else {
-            setUsers([
-                ...users,
-                { id: Date.now(), name, email }
-            ]);
+            await axios.post("http://localhost:5000/users", {
+                name,
+                email
+            });
         }
 
-        setName('');
-        setEmail('');
-    }
+        getUsers();
 
-    function handleEdit(user) {
+        setName("");
+        setEmail("");
+        setUpdate("");
+        setShowForm(false);
+    };
+
+    const handleEdit = (user) => {
+        setUpdate(user);
         setName(user.name);
         setEmail(user.email);
-        setEditId(user.id);
-    }
+        setShowForm(true);
+    };
 
-    function handleDelete(id) {
-        setUsers(users.filter((u) => u.id !== id));
-    }
+    const handleDelete = async (id) => {
+        await axios.post("http://localhost:5000/deleteUser", { id });
+        getUsers();
+    };
+
+    useEffect(() => {
+        getUsers();
+    }, []);
 
     return (
         <div className="p-6 bg-gray-100 min-h-screen">
 
-            <h2 className="text-2xl font-bold mb-4">
-                Users
-            </h2>
-
-            <div className="bg-white p-4 rounded shadow mb-6 flex gap-3">
-
-                <input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Name"
-                    className="border rounded p-2 flex-1"
-                />
-
-                <input
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Email"
-                    className="border rounded p-2 flex-1"
-                />
+            <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-semibold">Users</h2>
 
                 <button
-                    onClick={handleSubmit}
-                    className="bg-blue-600 text-white px-4 py-2 rounded"
+                    onClick={() => {
+                        setShowForm(!showForm);
+                        setUpdate("");
+                        setName("");
+                        setEmail("");
+                    }}
+                    className="bg-gray-900 text-white px-4 py-2 rounded"
                 >
-                    {editId ? "Update" : "Add User"}
+                    Add
                 </button>
-
             </div>
 
-            <table className="w-full bg-white rounded shadow text-left">
+            {showForm && (
+                <div className="bg-white border rounded p-4 mb-6 grid grid-cols-3 gap-3">
 
-                <thead className="bg-gray-200">
+                    <input
+                        type="text"
+                        placeholder="Name"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="border rounded px-3 py-2"
+                    />
+
+                    <input
+                        type="email"
+                        placeholder="Email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="border rounded px-3 py-2"
+                    />
+
+                    <button
+                        onClick={handleSubmit}
+                        className="bg-gray-900 text-white px-4 py-2 rounded"
+                    >
+                        {update ? "Update" : "Save"}
+                    </button>
+
+                </div>
+            )}
+
+            <table className="w-full bg-white border rounded text-left">
+
+                <thead className="bg-gray-100">
                     <tr>
+                        <th className="p-3">#</th>
                         <th className="p-3">Name</th>
                         <th className="p-3">Email</th>
                         <th className="p-3">Actions</th>
@@ -91,14 +119,14 @@ const Dashboard = () => {
                 </thead>
 
                 <tbody>
-                    {users.map((user) => (
-                        <tr key={user.id} className="border-t">
+                    {users.map((user, index) => (
+                        <tr key={user._id} className="border-t">
 
+                            <td className="p-3">{index + 1}</td>
                             <td className="p-3">{user.name}</td>
                             <td className="p-3">{user.email}</td>
 
                             <td className="p-3">
-
                                 <button
                                     onClick={() => handleEdit(user)}
                                     className="bg-yellow-500 text-white px-3 py-1 rounded mr-2"
@@ -107,13 +135,13 @@ const Dashboard = () => {
                                 </button>
 
                                 <button
-                                    onClick={() => handleDelete(user.id)}
+                                    onClick={() => handleDelete(user._id)}
                                     className="bg-red-600 text-white px-3 py-1 rounded"
                                 >
                                     Delete
                                 </button>
-
                             </td>
+
                         </tr>
                     ))}
                 </tbody>
@@ -122,6 +150,6 @@ const Dashboard = () => {
 
         </div>
     );
-};
+}
 
 export default Dashboard;
